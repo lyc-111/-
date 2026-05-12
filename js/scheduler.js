@@ -29,30 +29,38 @@ class Scheduler {
      * 按任务提交顺序分配资源
      */
     fcfs(tasks, machines) {
-        const allocations = [];
-        const remainingTasks = [];
+    const allocations = [];
+    const remainingTasks = [];
+    
+    for (let task of tasks) {
+        // 按空闲资源排序，找最空闲的
+        const sortedMachines = [...machines].sort((a, b) => {
+            const aFree = (a.cpu.total - a.cpu.used) + (a.memory.total - a.memory.used);
+            const bFree = (b.cpu.total - b.cpu.used) + (b.memory.total - b.memory.used);
+            return bFree - aFree;  // 空闲多的排在前面
+        });
         
-        for (let task of tasks) {
-            let allocated = false;
-            
-            for (let machine of machines) {
-                if (this.canAllocate(task, machine)) {
-                    this.allocate(task, machine);
-                    allocations.push({ task, machine });
-                    allocated = true;
-                    log(`FCFS: 任务 ${task.name} 分配到 ${machine.id}`, 'success');
-                    break;
-                }
-            }
-            
-            if (!allocated) {
-                remainingTasks.push(task);
-                log(`FCFS: 任务 ${task.name} 资源不足，进入等待队列`, 'error');
+        let allocated = false;
+        
+        for (let machine of sortedMachines) {
+            if (this.canAllocate(task, machine)) {
+                this.allocate(task, machine);
+                allocations.push({ task, machine });
+                allocated = true;
+                log(`FCFS: 任务 ${task.name} 分配到 ${machine.id} (最空闲)`, 'success');
+                break;
             }
         }
         
-        return { allocations, remainingTasks };
+        if (!allocated) {
+            remainingTasks.push(task);
+            log(`FCFS: 任务 ${task.name} 资源不足，进入等待队列`, 'error');
+        }
     }
+    
+    return { allocations, remainingTasks };
+}
+
 
     /**
      * 最短作业优先 (SJF)
